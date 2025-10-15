@@ -7,7 +7,7 @@ from tools import PerplexitySearchTool
 try:
     from crew import run_search_crew
     CREWAI_AVAILABLE = True
-except (ImportError, TypeError) as e:
+except (ImportError, TypeError, ModuleNotFoundError) as e:
     CREWAI_AVAILABLE = False
 
 load_dotenv()
