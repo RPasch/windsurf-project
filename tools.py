@@ -27,23 +27,29 @@ class PerplexitySearchTool:
         # Build the EDD compliance prompt
         prompt = f"""You are acting as a compliance analyst performing Enhanced Due Diligence (EDD) public domain checks in line with CBUAE requirements.
 
-                        For the following entities/persons: {query}
+                        For the following entities/persons:{query}
 
-                        When providing the results, clearly label each entry with its category (Company, UBO, Authorized Person, Subsidiary/Partner, Counterparty). If the name does not fall under one of these, assign it to "Other (related category)" and specify what that category is.
+                        When providing the results, clearly label each entry with its category (Company, UBO, Authorized Person, Subsidiary/Partner, Counterparty). If the name does not fall under one of these, assign it to “Other (related category)” and specify what that category is.
 
                         If the inserted input is a company name, start by giving at least two short lines about the company — what it is, what it does, and where it is located. Keep this brief (no more than 2 lines) before moving on to the adverse media and public domain checks.
 
-                        If the inserted input is a person's name, skip the company introduction and continue directly with the public domain checks as already instructed. 
-                        
+                        If the inserted input is a person’s name, skip the company introduction and continue directly with the public domain checks as already instructed.
+
                         Perform a deep public domain search (Google, news sources, regulatory filings, sanctions lists, legal proceedings, reliable media) and identify any red flags across these categories:
 
-                        - Sanctions & Restricted Countries – associations with Iran, Syria, Cuba, North Korea, Crimea, DPRK, Sevastopol, or international sanctions.
-                        - Terrorism Financing – links to terrorist organizations, funding, or support.
-                        - Financial Conduct & Regulatory Issues – fines, enforcement actions, market misconduct, insider trading.
-                        - Money Laundering – laundering schemes, shell companies, suspicious transactions.
-                        - Bribery & Corruption – bribery, kickbacks, embezzlement, misuse of power.
-                        - Adverse Media & Negative News – fraud, scams, bankruptcy, trafficking, smuggling, forgery, counterfeit, cybercrime, evasion.
-                        - Other Red Flags – reputational risks, banned industries, criminal cases.
+                        Sanctions & Restricted Countries – associations with Iran, Syria, Cuba, North Korea, Crimea, DPRK, Sevastopol, or international sanctions.
+
+                        Terrorism Financing – links to terrorist organizations, funding, or support.
+
+                        Financial Conduct & Regulatory Issues – fines, enforcement actions, market misconduct, insider trading.
+
+                        Money Laundering – laundering schemes, shell companies, suspicious transactions.
+
+                        Bribery & Corruption – bribery, kickbacks, embezzlement, misuse of power.
+
+                        Adverse Media & Negative News – fraud, scams, bankruptcy, trafficking, smuggling, forgery, counterfeit, cybercrime, evasion.
+
+                        Other Red Flags – reputational risks, banned industries, criminal cases.
 
                         Output Format (for each entity/person):
 
@@ -56,9 +62,8 @@ class PerplexitySearchTool:
 
                         Reference Links: Direct URLs to key sources.
 
-                        Make the results structured, clear, and ready to paste into Passfort. For each entity/person, explicitly state whether adverse media or other negative findings exist. If none are found, clearly write "No adverse results found" under that individual's section.
-                        """
-        
+                        Make the results structured, clear, and ready to paste into Passfort. For each entity/person, explicitly state whether adverse media or other negative findings exist. If none are found, clearly write “No adverse results found” under that individual’s section."""
+                                
         payload = {
             "model": "sonar",
             "messages": [
@@ -106,13 +111,14 @@ class PerplexitySearchTool:
 
 
 # Helper function for the tool
-def _perplexity_search(tool_input: str) -> str:
+def _perplexity_search(tool_input: str, api_key: str = None) -> str:
     """Internal function to perform Perplexity search
     
     Args:
         tool_input: The query string (entity or person name)
+        api_key: Optional custom API key
     """
-    search_tool = PerplexitySearchTool()
+    search_tool = PerplexitySearchTool(api_key=api_key)
     result = search_tool.search(tool_input)
     
     if "error" in result:
@@ -124,12 +130,27 @@ def _perplexity_search(tool_input: str) -> str:
     return "No results found"
 
 
-# Create a CrewAI-compatible tool using LangChain's Tool class
-perplexity_search_tool = Tool(
-    name="Perplexity Search",
-    func=_perplexity_search,
-    description="Search the web using Perplexity API for Enhanced Due Diligence (EDD) compliance checks. Input should be an entity or person name to search for. Returns a comprehensive EDD compliance report with risk assessment."
-)
+def create_perplexity_search_tool(api_key: str = None) -> Tool:
+    """Factory function to create a Perplexity search tool with custom API key
+    
+    Args:
+        api_key: Optional custom Perplexity API key
+        
+    Returns:
+        Tool configured with the provided API key
+    """
+    def search_func(tool_input: str) -> str:
+        return _perplexity_search(tool_input, api_key=api_key)
+    
+    return Tool(
+        name="Perplexity Search",
+        func=search_func,
+        description="Search the web using Perplexity API for Enhanced Due Diligence (EDD) compliance checks. Input should be an entity or person name to search for. Returns a comprehensive EDD compliance report with risk assessment."
+    )
+
+
+# Create a default tool for backward compatibility
+perplexity_search_tool = create_perplexity_search_tool()
 
 
 
@@ -151,10 +172,11 @@ def _perplexity_custom_search(
     region: str,
     compliance_category: str,
     individual_business_name: str,
-    perplexity_search_prompt: str
+    perplexity_search_prompt: str,
+    api_key: str = None
 ) -> str:
     """Execute custom Perplexity search for targeted compliance research"""
-    perplexity_api_key = os.getenv('PERPLEXITY_API_KEY')
+    perplexity_api_key = api_key or os.getenv('PERPLEXITY_API_KEY')
     base_url = "https://api.perplexity.ai/chat/completions"
     headers = {
         "Authorization": f"Bearer {perplexity_api_key}",
@@ -208,12 +230,38 @@ def _perplexity_custom_search(
         return f"Error performing search: {str(e)}"
 
 
-# Create the custom tool using StructuredTool
-perplexity_custom_tool = StructuredTool.from_function(
-    func=_perplexity_custom_search,
-    name="Custom Search Tool",
-    description="If not enough info is already collected or if doubts exist, this tool can be used to do more research on a specific topic using perplexity search. Provide region, compliance category, entity/person name, and custom search prompt.",
-    args_schema=PerplexityCustomToolInput
-)
+def create_perplexity_custom_tool(api_key: str = None) -> StructuredTool:
+    """Factory function to create a custom Perplexity search tool with custom API key
+    
+    Args:
+        api_key: Optional custom Perplexity API key
+        
+    Returns:
+        StructuredTool configured with the provided API key
+    """
+    def custom_search_func(
+        region: str,
+        compliance_category: str,
+        individual_business_name: str,
+        perplexity_search_prompt: str
+    ) -> str:
+        return _perplexity_custom_search(
+            region=region,
+            compliance_category=compliance_category,
+            individual_business_name=individual_business_name,
+            perplexity_search_prompt=perplexity_search_prompt,
+            api_key=api_key
+        )
+    
+    return StructuredTool.from_function(
+        func=custom_search_func,
+        name="Custom Search Tool",
+        description="If not enough info is already collected or if doubts exist, this tool can be used to do more research on a specific topic using perplexity search. Provide region, compliance category, entity/person name, and custom search prompt.",
+        args_schema=PerplexityCustomToolInput
+    )
+
+
+# Create default tools for backward compatibility
+perplexity_custom_tool = create_perplexity_custom_tool()
 
 

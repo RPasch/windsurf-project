@@ -1,8 +1,15 @@
 from crewai import Agent
-from tools import perplexity_search_tool, perplexity_custom_tool
+from tools import create_perplexity_search_tool, create_perplexity_custom_tool
 
-def create_researcher_agent() -> Agent:
-    """Create a researcher agent for gathering information"""
+def create_researcher_agent(perplexity_api_key: str = None) -> Agent:
+    """Create a researcher agent for gathering information
+    
+    Args:
+        perplexity_api_key: Optional custom Perplexity API key
+    """
+    # Create tool with custom API key
+    search_tool = create_perplexity_search_tool(api_key=perplexity_api_key)
+    
     return Agent(
         role='Senior Research Analyst',
         goal='Find and analyze information about the given query from public domain sources and present raw data',
@@ -12,12 +19,19 @@ def create_researcher_agent() -> Agent:
         in a clear and organized manner.""",
         verbose=True,
         allow_delegation=False,
-        tools=[perplexity_search_tool],
+        tools=[search_tool],
     )
 
 
-def create_analyst_agent() -> Agent:
-    """Create an analyst agent for processing and analyzing information"""
+def create_analyst_agent(perplexity_api_key: str = None) -> Agent:
+    """Create an analyst agent for processing and analyzing information
+    
+    Args:
+        perplexity_api_key: Optional custom Perplexity API key
+    """
+    # Create custom tool with custom API key
+    custom_tool = create_perplexity_custom_tool(api_key=perplexity_api_key)
+    
     return Agent(
         role='Compliance Intelligence Analyst',
         goal='Analyse compliance reports for a new entity and summarise it for onboarding agents in markdown format',
@@ -26,5 +40,5 @@ def create_analyst_agent() -> Agent:
         You are experienced at research and know when to research further or when you have enough information to drae a conclusion. Your opinion matters a lot.""",
         verbose=True,
         allow_delegation=False,
-        tools=[perplexity_search_tool],
+        tools=[custom_tool],
     )

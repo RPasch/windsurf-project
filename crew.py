@@ -15,10 +15,9 @@ def create_search_crew(query: str, perplexity_api_key: str = None) -> Crew:
     Returns:
         Configured Crew instance ready to execute
     """
-    # Create agents
-    researcher = create_researcher_agent()
-    analyst = create_analyst_agent()
-    search_tool = PerplexitySearchTool(api_key=perplexity_api_key)
+    # Create agents with custom API key
+    researcher = create_researcher_agent(perplexity_api_key=perplexity_api_key)
+    analyst = create_analyst_agent(perplexity_api_key=perplexity_api_key)
 
     # Create tasks
     research_task = create_research_task(researcher, query)
