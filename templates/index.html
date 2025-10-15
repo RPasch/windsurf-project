@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Domain Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .result-section {
+            min-height: 200px;
+        }
+        .loading {
+            display: none;
+        }
+        /* Markdown styling */
+        .markdown-content {
+            line-height: 1.6;
+        }
+        .markdown-content h1 {
+            font-size: 1.875rem;
+            font-weight: bold;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .markdown-content h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+        .markdown-content h3 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .markdown-content p {
+            margin-bottom: 1rem;
+        }
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .markdown-content li {
+            margin-bottom: 0.5rem;
+        }
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        .markdown-content table th {
+            background-color: #f3f4f6;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #e5e7eb;
+        }
+        .markdown-content table td {
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+        }
+        .markdown-content table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        .markdown-content code {
+            background-color: #f3f4f6;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+        .markdown-content pre {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        .markdown-content a {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+        .markdown-content a:hover {
+            color: #1d4ed8;
+        }
+        .markdown-content blockquote {
+            border-left: 4px solid #e5e7eb;
+            padding-left: 1rem;
+            margin-left: 0;
+            margin-bottom: 1rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Public Domain Search</h1>
+            <p class="text-gray-600">Search for information about people or companies using AI</p>
+        </header>
+
+        <div class="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <!-- Search Mode Selector -->
+            <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm font-medium text-gray-700 mb-3">Search Mode:</div>
+                <div class="inline-flex rounded-lg border border-gray-300 bg-white p-1" role="group">
+                    <button
+                        type="button"
+                        id="modeCrewAI"
+                        class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 bg-blue-600 text-white"
+                        data-mode="crewai"
+                    >
+                        <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        CrewAI Only
+                    </button>
+                    <button
+                        type="button"
+                        id="modeBoth"
+                        class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 text-gray-700 hover:bg-gray-100"
+                        data-mode="both"
+                    >
+                        <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                        Both
+                    </button>
+                    <button
+                        type="button"
+                        id="modePerplexity"
+                        class="mode-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 text-gray-700 hover:bg-gray-100"
+                        data-mode="perplexity"
+                    >
+                        <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Perplexity Only
+                    </button>
+                </div>
+                <div class="mt-2 text-xs text-gray-500">
+                    <span id="modeDescription">Uses AI agents for deep analysis</span>
+                </div>
+            </div>
+            
+            <form id="searchForm" class="mb-6">
+                <!-- Optional Perplexity API Key -->
+                <div class="mb-4">
+                    <label for="perplexityKey" class="block text-sm font-medium text-gray-700 mb-2">
+                        Perplexity API Key (Optional)
+                        <span class="text-xs text-gray-500 font-normal">- Leave empty to use default</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        id="perplexityKey" 
+                        name="perplexity_key" 
+                        placeholder="pplx-..." 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                </div>
+                
+                <!-- Search Query -->
+                <div class="flex">
+                    <input 
+                        type="text" 
+                        id="searchQuery" 
+                        name="query" 
+                        placeholder="Enter a person's name, company, or topic..." 
+                        class="flex-grow px-4 py-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    >
+                    <button 
+                        type="submit" 
+                        class="bg-blue-600 text-white px-6 py-3 rounded-r-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                        Search
+                    </button>
+                </div>
+            </form>
+
+            <div id="loading" class="loading text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                <p class="text-gray-600">Searching and analyzing data. This may take a moment...</p>
+            </div>
+
+            <div id="results" class="mt-8">
+                <div id="crewaiResult" class="result-section mb-8">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">AI Analysis</h2>
+                    <div id="crewaiContent" class="prose max-w-none">
+                        <p class="text-gray-500 italic">Your search results will appear here...</p>
+                    </div>
+                </div>
+
+                <div id="perplexityResult" class="result-section">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">EDD Compliance Report</h2>
+                    <div id="perplexityContent" class="markdown-content">
+                        <p class="text-gray-500 italic">Search results will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center text-gray-500 text-sm py-4">
+        <p>Powered by CrewAI and Perplexity API</p>
+    </footer>
+
+    <script>
+        // Configure marked.js to open links in new tabs
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            renderer: new marked.Renderer()
+        });
+        
+        // Override link rendering to add target="_blank"
+        const renderer = new marked.Renderer();
+        const linkRenderer = renderer.link;
+        renderer.link = (href, title, text) => {
+            const html = linkRenderer.call(renderer, href, title, text);
+            return html.replace(/^<a /, '<a target="_blank" rel="noopener noreferrer" ');
+        };
+        marked.setOptions({ renderer });
+        
+        // Mode selector handler
+        let selectedMode = 'crewai'; // Default mode
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        const modeDescription = document.getElementById('modeDescription');
+        
+        const modeDescriptions = {
+            'crewai': 'Uses AI agents for deep analysis (slower, more detailed)',
+            'both': 'Runs both CrewAI and Perplexity for comprehensive results',
+            'perplexity': 'Direct Perplexity search (faster, focused on EDD compliance)'
+        };
+        
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active state from all buttons
+                modeButtons.forEach(btn => {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('text-gray-700', 'hover:bg-gray-100');
+                });
+                
+                // Add active state to clicked button
+                button.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                button.classList.add('bg-blue-600', 'text-white');
+                
+                // Update selected mode
+                selectedMode = button.dataset.mode;
+                modeDescription.textContent = modeDescriptions[selectedMode];
+            });
+        });
+        
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = document.getElementById('searchQuery').value.trim();
+            const perplexityKey = document.getElementById('perplexityKey').value.trim();
+            if (!query) return;
+            
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const crewaiContent = document.getElementById('crewaiContent');
+            const perplexityContent = document.getElementById('perplexityContent');
+            
+            // Show loading, hide previous results
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            
+            try {
+                // Build request body
+                let body = `query=${encodeURIComponent(query)}&mode=${selectedMode}`;
+                if (perplexityKey) {
+                    body += `&perplexity_key=${encodeURIComponent(perplexityKey)}`;
+                }
+                
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: body
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data); // Debug log
+                
+                // Display CrewAI results
+                if (data.crewai_result) {
+                    crewaiContent.innerHTML = `<div class="bg-gray-50 p-4 rounded">${data.crewai_result.replace(/\n/g, '<br>')}</div>`;
+                }
+                
+                // Display Perplexity results with Markdown rendering
+                if (data.perplexity_result) {
+                    if (data.perplexity_result.choices && data.perplexity_result.choices.length > 0) {
+                        const message = data.perplexity_result.choices[0].message;
+                        let content = message.content;
+                        
+                        // Process citations if available
+                        if (data.perplexity_result.citations && data.perplexity_result.citations.length > 0) {
+                            const citations = data.perplexity_result.citations;
+                            
+                            // Replace [1], [2], etc. with clickable links
+                            citations.forEach((url, index) => {
+                                const citationNum = index + 1;
+                                const citationRegex = new RegExp(`\\[${citationNum}\\]`, 'g');
+                                content = content.replace(citationRegex, `[<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 font-semibold">${citationNum}</a>]`);
+                            });
+                        }
+                        
+                        // Render markdown content
+                        const markdownHtml = marked.parse(content);
+                        perplexityContent.innerHTML = `<div class="bg-white p-6 rounded-lg border border-gray-200">
+                            ${markdownHtml}
+                            <div class="mt-6 pt-4 border-t border-gray-200 text-sm text-gray-500">
+                                <p><strong>Model:</strong> ${data.perplexity_result.model}</p>
+                                <p><strong>Tokens used:</strong> ${data.perplexity_result.usage?.total_tokens || 'N/A'}</p>
+                            </div>
+                        </div>`;
+                    } else if (data.perplexity_result.error) {
+                        perplexityContent.innerHTML = `<div class="bg-red-50 text-red-700 p-4 rounded">
+                            <strong>Error:</strong> ${data.perplexity_result.error}
+                        </div>`;
+                    } else {
+                        // Fallback: display raw response
+                        perplexityContent.innerHTML = `<div class="bg-yellow-50 p-4 rounded">
+                            <p class="text-sm text-gray-600 font-semibold mb-2">Raw response:</p>
+                            <pre class="text-xs mt-2 overflow-auto">${JSON.stringify(data.perplexity_result, null, 2)}</pre>
+                        </div>`;
+                    }
+                } else if (data.error) {
+                    perplexityContent.innerHTML = `<div class="bg-red-50 text-red-700 p-4 rounded">
+                        <strong>Error:</strong> ${data.error}
+                    </div>`;
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                crewaiContent.innerHTML = `<div class="bg-red-50 text-red-700 p-4 rounded">
+                    An error occurred while processing your request. Please try again later.<br>
+                    <span class="text-sm">Check browser console for details.</span>
+                </div>`;
+                perplexityContent.innerHTML = `<div class="bg-red-50 text-red-700 p-4 rounded">
+                    Error: ${error.message}
+                </div>`;
+            } finally {
+                // Hide loading, show results
+                loading.style.display = 'none';
+                results.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
