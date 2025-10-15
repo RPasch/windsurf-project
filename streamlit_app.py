@@ -46,7 +46,17 @@ with st.sidebar:
     
     st.divider()
     
-    st.subheader("🔑 API Key")
+    st.subheader("🔑 API Keys")
+    
+    # OpenAI API Key (for CrewAI)
+    openai_key = st.text_input(
+        "OpenAI API Key",
+        type="password",
+        placeholder="sk-...",
+        help="Required for CrewAI analysis. Get one at https://platform.openai.com/api-keys"
+    )
+    
+    # Perplexity API Key
     perplexity_key = st.text_input(
         "Perplexity API Key",
         type="password",
@@ -54,15 +64,24 @@ with st.sidebar:
         help="Enter your Perplexity API key. Get one at https://www.perplexity.ai/settings/api"
     )
     
-    if perplexity_key:
-        st.success("✅ Using your API key")
+    # Status indicators
+    if openai_key:
+        st.success("✅ OpenAI key provided")
     else:
-        # Check if default key exists
-        default_key = os.getenv('PERPLEXITY_API_KEY')
-        if default_key:
-            st.info("ℹ️ Using default API key")
-        else:
-            st.warning("⚠️ No API key provided")
+        default_openai = os.getenv('OPENAI_API_KEY')
+        if default_openai:
+            st.info("ℹ️ Using default OpenAI key")
+        elif mode in ['crewai', 'both']:
+            st.warning("⚠️ OpenAI key required for CrewAI")
+    
+    if perplexity_key:
+        st.success("✅ Perplexity key provided")
+    else:
+        default_perplexity = os.getenv('PERPLEXITY_API_KEY')
+        if default_perplexity:
+            st.info("ℹ️ Using default Perplexity key")
+        elif mode in ['perplexity', 'both']:
+            st.warning("⚠️ Perplexity key required")
 
 # Main search interface
 st.divider()
@@ -78,7 +97,9 @@ query = st.text_input(
 if st.button("🚀 Search", type="primary", use_container_width=True):
     if not query:
         st.error("❌ Please enter a search query")
-    elif not perplexity_key and not os.getenv('PERPLEXITY_API_KEY'):
+    elif mode in ['crewai', 'both'] and not openai_key and not os.getenv('OPENAI_API_KEY'):
+        st.error("❌ Please enter an OpenAI API key for CrewAI analysis")
+    elif mode in ['perplexity', 'both'] and not perplexity_key and not os.getenv('PERPLEXITY_API_KEY'):
         st.error("❌ Please enter a Perplexity API key")
     else:
         # Create tabs for results
@@ -95,6 +116,10 @@ if st.button("🚀 Search", type="primary", use_container_width=True):
                 else:
                     try:
                         with st.spinner("🤖 Running CrewAI analysis... This may take a few minutes."):
+                            # Set OpenAI API key temporarily if provided
+                            if openai_key:
+                                os.environ['OPENAI_API_KEY'] = openai_key
+                            
                             crewai_result = run_search_crew(
                                 query, 
                                 perplexity_api_key=perplexity_key if perplexity_key else None
@@ -121,8 +146,19 @@ if st.button("🚀 Search", type="primary", use_container_width=True):
                         message = perplexity_result["choices"][0]["message"]
                         content = message["content"]
                         
-                        # Display the content
-                        st.markdown(content)
+                        # Process citations to make bracketed numbers clickable
+                        if "citations" in perplexity_result and perplexity_result["citations"]:
+                            citations = perplexity_result["citations"]
+                            # Replace [1], [2], etc. with clickable links
+                            import re
+                            for idx, url in enumerate(citations, 1):
+                                # Match [number] pattern
+                                pattern = rf'\[{idx}\]'
+                                replacement = f'[[{idx}]]({url})'
+                                content = re.sub(pattern, replacement, content)
+                        
+                        # Display the content with clickable citations
+                        st.markdown(content, unsafe_allow_html=True)
                         
                         # Display metadata in expander
                         with st.expander("ℹ️ Response Metadata"):
